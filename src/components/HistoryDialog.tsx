@@ -1,6 +1,8 @@
+"use client";
+
 import React from "react";
 import { Hex, Address } from "viem";
-import { getWalletClient, ensureChain, CHAIN_BY_ID } from "@/utils/viemClient";
+import { CHAIN_BY_ID, getPublic } from "@/utils/viemClient";
 import {
   HashiAddress,
   LIGHTBULB_PER_CHAIN,
@@ -8,6 +10,7 @@ import {
   YARU_PER_CHAIN,
 } from "@/utils/consts";
 import { YaruAbi } from "@/utils/abis/yaruAbi";
+import { useWalletClient, useSwitchChain } from "wagmi";
 
 export interface HistoryEntry {
   chainId: number;
@@ -15,74 +18,77 @@ export interface HistoryEntry {
   data: Hex;
   threshold: number;
   bridges: HashiAddress[];
-  /** original switch transaction hash */
   switchTx: string;
-  /** LayerZero destination transaction hash */
-  layerZero: {
-    txHash: string;
-    isUsed: boolean;
-  };
-  /** CCIP relayer transaction hash */
-  CCIP: {
-    txHash: string;
-    isUsed: boolean;
-  };
-  /** Vea relayer transaction hash */
-  vea: {
-    txHash: string;
-    isUsed: boolean;
-  };
-  /** has this message already been executed? */
+  layerZero: { txHash: string; isUsed: boolean };
+  CCIP: { txHash: string; isUsed: boolean };
+  vea: { txHash: string; isUsed: boolean };
   executed: boolean;
 }
 
 interface HistoryTableProps {
-  chainId: number;
+  chainId: number; // active chain from wagmi/useChainId upstream
   account: Address | null;
   history: HistoryEntry[];
 }
 
 export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
   const [isDeleted, setIsDeleted] = React.useState(false);
+  const { data: walletClient } = useWalletClient(); // viem WalletClient from wagmi connection [1]
+  const { switchChain } = useSwitchChain(); // switch network if needed [3]
+
   const onExecute = async (entry: HistoryEntry) => {
-    const client = getWalletClient();
-    if (!client) {
+    if (!walletClient || !account) {
       alert("Connect your wallet to execute messages");
       return;
     }
+    // If the wallet is on a different chain than the entry target, switch first.
+    if (entry.chainId !== chainId) {
+      try {
+        await switchChain({ chainId: entry.chainId }); // prompts via wallet/RainbowKit [3]
+      } catch (err: any) {
+        alert(
+          `Please switch to ${CHAIN_BY_ID[entry.chainId]?.name} and try again`
+        );
+        return;
+      }
+    }
+
     const reporters: Address[] = entry.bridges.map((b) => b.reporter);
     const adapters: Address[] = entry.bridges.map((b) => b.adapter);
+
     try {
-      // Build the Message struct for executeMessages
       const message = {
         nonce: entry.nonce,
         data: entry.data,
-        targetChainId: chainId,
+        targetChainId: entry.chainId,
         threshold: entry.threshold,
         sender: SWITCH_ADDRESS,
-        receiver: LIGHTBULB_PER_CHAIN[chainId],
+        receiver: LIGHTBULB_PER_CHAIN[entry.chainId],
         reporters,
         adapters,
       };
 
-      const { publicClient } = await ensureChain(chainId);
+      // Use your public client for estimation & receipt
+      const publicClient = getPublic(entry.chainId);
+
       const estimatedGas = await publicClient.estimateContractGas({
-        address: YARU_PER_CHAIN[chainId],
+        address: YARU_PER_CHAIN[entry.chainId],
         abi: YaruAbi,
         functionName: "executeMessages",
         args: [[message]],
+        account,
       });
 
-      // Call executeMessages on Yaru contract
-      const txHash = await client.writeContract({
-        address: YARU_PER_CHAIN[chainId],
+      const txHash = await walletClient.writeContract({
+        address: YARU_PER_CHAIN[entry.chainId],
         abi: YaruAbi,
         functionName: "executeMessages",
         args: [[message]],
-        chain: CHAIN_BY_ID[chainId],
+        chain: CHAIN_BY_ID[entry.chainId], // helps viem infer target chain [4]
         account,
         gas: estimatedGas,
       });
+
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash,
       });
@@ -103,18 +109,15 @@ export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
     setIsDeleted(true);
   };
 
-  if (isDeleted) {
-    return;
-  }
+  if (isDeleted) return null;
+
   return (
     <div className="mx-auto bg-black border-2 border-white w-full rounded-lg shadow-md p-6">
       <div className="flex justify-between">
         <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
         <button
           className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          onClick={() => {
-            onDelete();
-          }}
+          onClick={onDelete}
         >
           Delete All
         </button>
@@ -156,7 +159,6 @@ export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
                   )}
                 </td>
                 <td className="py-2">
-                  {" "}
                   {entry.CCIP.isUsed ? (
                     <a
                       href={`https://ccip.chain.link/`}
@@ -181,11 +183,11 @@ export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
                 <td className="py-2">
                   {!entry.executed && (
                     <button
-                      disabled={entry.chainId == chainId && !chainId}
+                      disabled={entry.chainId === chainId && !chainId}
                       onClick={() => onExecute(entry)}
                       className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                     >
-                      {entry.chainId == chainId
+                      {entry.chainId === chainId
                         ? "Execute"
                         : "Switch wallet to " +
                           CHAIN_BY_ID[entry.chainId]?.name}

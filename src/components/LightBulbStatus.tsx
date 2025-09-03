@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { getWalletClient } from "@/utils/viemClient";
-import { fetchLightBulbToggledEvents } from "@/utils/logs";
 import { useLightBulb } from "@/hooks/useLigthBulb";
 import { Address, Chain } from "viem";
 import { gnosisChiado, sepolia } from "viem/chains";

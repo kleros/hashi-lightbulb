@@ -1,13 +1,6 @@
 // src/utils/viemClient.ts
 import "viem/window";
-import {
-  createWalletClient,
-  custom,
-  createPublicClient,
-  http,
-  publicActions,
-  type Chain,
-} from "viem";
+import { createPublicClient, http, type Chain } from "viem";
 import { arbitrumSepolia, gnosisChiado, sepolia } from "viem/chains";
 
 export const SUPPORTED_CHAINS: Chain[] = [
@@ -21,64 +14,71 @@ export const CHAIN_BY_ID = Object.fromEntries(
   SUPPORTED_CHAINS.map((c) => [c.id, c])
 );
 
-let _walletClient: ReturnType<typeof createWalletClient> | null = null;
 const _publicClients = new Map<number, ReturnType<typeof createPublicClient>>();
 
 export function getPublicClient(chainId: number) {
   const existing = _publicClients.get(chainId);
   if (existing) return existing;
-  const chain = CHAIN_BY_ID[chainId] ?? DEFAULT_CHAIN;
-  const client = createPublicClient({ chain, transport: http() });
+  const chain =
+    (CHAIN_BY_ID as Record<number, Chain>)[chainId] ?? DEFAULT_CHAIN;
+  const client = createPublicClient({
+    chain,
+    transport: http(), // consider passing explicit RPC via env for reliability
+  });
   _publicClients.set(chain.id, client);
   return client;
 }
 
-export function getWalletClient() {
-  if (_walletClient) return _walletClient;
-  if (typeof window === "undefined" || !window.ethereum) {
-    console.warn("No injected Ethereum provider found");
-    return null;
+// Back-compat alias
+export function getPublic(chainId: number) {
+  return getPublicClient(chainId);
+}
+
+/**
+ * Requests the injected wallet to switch to `chainId`.
+ * If the chain is unknown to the wallet, it will attempt to add it first, then switch.
+ * Returns the public client for the target chain.
+ *
+ * Note: With RainbowKit/wagmi, prefer useSwitchChain for UI-driven switching.
+ * This helper is safe to keep for non-React contexts.
+ */
+export async function ensureChain(chainId: number) {
+  const target = (CHAIN_BY_ID as Record<number, Chain>)[chainId];
+  if (!target) throw new Error(`Unsupported chain id: ${chainId}`);
+
+  const eth: any =
+    typeof window !== "undefined" ? (window as any).ethereum : null;
+  if (!eth?.request) {
+    throw new Error("No injected Ethereum provider found");
   }
 
-  _walletClient = createWalletClient({
-    chain: DEFAULT_CHAIN,
-    transport: custom(window.ethereum),
-  }).extend(publicActions);
-  return _walletClient;
-}
-
-export function getPublic(chainId: number) {
-  const existing = _publicClients.get(chainId);
-  if (existing) return existing;
-  const chain = CHAIN_BY_ID[chainId] ?? DEFAULT_CHAIN;
-  const client = createPublicClient({ chain, transport: http() });
-  _publicClients.set(chain.id, client);
-  return client;
-}
-
-export async function ensureChain(chainId: number) {
-  const target = CHAIN_BY_ID[chainId];
-  console.log(target);
-  const wallet = getWalletClient();
-  if (!wallet) throw new Error("Wallet not available");
+  // Try to switch first
   try {
-    await wallet.switchChain({ id: target.id });
+    await eth.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: `0x${target.id.toString(16)}` }],
+    });
   } catch {
-    await(window as any).ethereum?.request?.({
+    // If switch fails (unknown chain), try adding then switching.
+    await eth.request({
       method: "wallet_addEthereumChain",
       params: [
         {
           chainId: `0x${target.id.toString(16)}`,
           chainName: target.name,
           nativeCurrency: target.nativeCurrency,
-          rpcUrls: target.rpcUrls.default.http,
+          rpcUrls: target.rpcUrls?.default?.http ?? [],
           blockExplorerUrls: target.blockExplorers
             ? [target.blockExplorers.default.url]
             : [],
         },
       ],
     });
-    await wallet.switchChain({ id: target.id });
+    await eth.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: `0x${target.id.toString(16)}` }],
+    });
   }
-  return { wallet, publicClient: getPublic(target.id) };
+
+  return { publicClient: getPublicClient(target.id) };
 }

@@ -14,11 +14,14 @@
     "@layerzerolabs/lz-evm-messagelib-v2": "^2.3.44",
     "@layerzerolabs/lz-evm-oapp-v2": "^2.3.44",
     "@layerzerolabs/lz-evm-protocol-v2": "^2.3.44",
+    "@rainbow-me/rainbowkit": "^2.2.8",
+    "@tanstack/react-query": "^5.85.6",
     "next": "15.4.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "solidity-rlp": "^2.0.8",
-    "viem": "^2.32.0"
+    "viem": "^2.32.0",
+    "wagmi": "^2.16.9"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
