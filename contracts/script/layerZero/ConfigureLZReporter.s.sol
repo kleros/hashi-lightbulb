@@ -5,19 +5,18 @@ import "forge-std/Script.sol";
 import "@hashi/adapters/LayerZero/LayerZeroReporter.sol";
 import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
-import { ExecutorConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
+import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import {MessageLibManager} from "@layerzerolabs/lz-evm-protocol-v2/contracts/MessageLibManager.sol";
 
-contract DeployLZReporter is Script {
+contract ConfigureLZReporter is Script {
     uint32 constant EXECUTOR_CONFIG_TYPE = 1;
     uint32 constant ULN_CONFIG_TYPE = 2;
+
     function run() external {
         // read deployer key and start broadcasting
         uint256 pk = vm.envUint("DEPLOYER_KEY");
-        address deployer = vm.addr(pk);
-
-        address lzEndpoint = vm.envAddress("LZ_ENDPOINT");
-        uint256 chainId = vm.envUint("ADAPTER_CHAIN_ID");
+        address lzEndpoint = vm.envAddress("LZ_REPORTER_ENDPOINT");
+        uint256 chainId = vm.envUint("LZ_ADAPTER_CHAIN_ID");
         uint32 eid = uint32(vm.envUint("ADAPTER_EID"));
         address sendLib = vm.envAddress("LZ_SEND_LIB");
         address executor = vm.envAddress("LZ_EXECUTOR");
@@ -34,43 +33,39 @@ contract DeployLZReporter is Script {
         reporter.setEndpointIdByChainId(chainId, eid);
         console.log("Endpoint set for adapter chainId");
 
-        (bool success, ) = payable(address(reporter)).call{value: 0.01 ether}("");
+        (bool success,) = payable(address(reporter)).call{value: 0.05 ether}("");
         require(success, "ETH transfer to reporter failed");
-        console.log("Funded reporter with 0.01 ETH");
+        console.log("Funded reporter with 0.006 ETH");
 
         // Set the DVN config as reporter
         address[] memory optionalDVNs = new address[](0);
-        address[] memory requiredDVNs = new address[](2);
-        requiredDVNs[1] = address(0x7c84fEb58183d3865E4e01d1b6C22bA2d227Dc23);
-        requiredDVNs[0] = address(0x53f488E93b4f1b60E8E83aa374dBe1780A1EE8a8);
+        address[] memory requiredDVNs = new address[](1);
+        requiredDVNs[0] = address(0xDd7B5E1dB4AaFd5C8EC3b764eFB8ed265Aa5445B);
 
         UlnConfig memory uln = UlnConfig({
             confirmations: 15, // minimum block confirmations required
-            requiredDVNCount: 2, // number of DVNs required
+            requiredDVNCount: 1, // number of DVNs required
             optionalDVNCount: 0, // optional DVNs count, uint8
             optionalDVNThreshold: 0, // optional DVN threshold
             requiredDVNs: requiredDVNs, // sorted list of required DVN addresses
             optionalDVNs: optionalDVNs // sorted list of optional DVNs
         });
 
-         /// @notice ExecutorConfig sets message size limit + fee‑paying executor
+        /// @notice ExecutorConfig sets message size limit + fee‑paying executor
         ExecutorConfig memory exec = ExecutorConfig({
-            maxMessageSize: 10000,                                       // max bytes per cross-chain message
-            executor:       executor                                     // address that pays destination execution fees
+            maxMessageSize: 10000, // max bytes per cross-chain message
+            executor: executor // address that pays destination execution fees
         });
 
-        bytes memory encodedUln  = abi.encode(uln);
+        bytes memory encodedUln = abi.encode(uln);
         bytes memory encodedExec = abi.encode(exec);
 
         SetConfigParam[] memory params = new SetConfigParam[](2);
         params[0] = SetConfigParam(eid, EXECUTOR_CONFIG_TYPE, encodedExec);
         params[1] = SetConfigParam(eid, ULN_CONFIG_TYPE, encodedUln);
 
-
         MessageLibManager(lzEndpoint).setConfig(address(reporter), sendLib, params);
         console.log("Config set successfully.");
-
-
 
         vm.stopBroadcast();
     }
