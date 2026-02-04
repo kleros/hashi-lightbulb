@@ -7,8 +7,9 @@ import {SetConfigParam} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interf
 import {UlnConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 import {ExecutorConfig} from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import {MessageLibManager} from "@layerzerolabs/lz-evm-protocol-v2/contracts/MessageLibManager.sol";
+import {DeploymentState} from "../helpers/DeploymentState.sol";
 
-contract ConfigureLZReporter is Script {
+contract ConfigureLZReporter is DeploymentState {
     uint32 constant EXECUTOR_CONFIG_TYPE = 1;
     uint32 constant ULN_CONFIG_TYPE = 2;
 
@@ -16,31 +17,32 @@ contract ConfigureLZReporter is Script {
         // read deployer key and start broadcasting
         uint256 pk = vm.envUint("DEPLOYER_KEY");
         address lzEndpoint = vm.envAddress("LZ_REPORTER_ENDPOINT");
-        uint256 chainId = vm.envUint("LZ_ADAPTER_CHAIN_ID");
-        uint32 eid = uint32(vm.envUint("ADAPTER_EID"));
+        uint256 chainId = vm.envUint("ADAPTER_CHAIN_ID");
+        uint32 eid = uint32(vm.envUint("LZ_ADAPTER_EID"));
         address sendLib = vm.envAddress("LZ_SEND_LIB");
         address executor = vm.envAddress("LZ_EXECUTOR");
-        address reporterAddress = vm.envAddress("LZ_REPORTER_ADDRESS");
-        address adapter = vm.envAddress("LZ_ADAPTER_ADDRESS");
+        uint128 fee = uint128(vm.envUint("LZ_DEFAULT_FEE"));
+        address reporterAddress = _loadAddress(".lzReporter");
+        address adapter = _loadAddress(".lzAdapter");
 
         vm.startBroadcast(pk);
         LayerZeroReporter reporter = LayerZeroReporter(payable(reporterAddress));
+        // reporter.setFee(fee);
+        // // Allow the adapter to receive messages
+        // reporter.setPeer(eid, bytes32(uint256(uint160(adapter))));
+        // console.log("Peer set for adapter");
 
-        // Allow the adapter to receive messages
-        reporter.setPeer(eid, bytes32(uint256(uint160(adapter))));
-        console.log("Peer set for adapter");
+        // reporter.setEndpointIdByChainId(chainId, eid);
+        // console.log("Endpoint set for adapter chainId");
 
-        reporter.setEndpointIdByChainId(chainId, eid);
-        console.log("Endpoint set for adapter chainId");
-
-        (bool success,) = payable(address(reporter)).call{value: 0.05 ether}("");
-        require(success, "ETH transfer to reporter failed");
-        console.log("Funded reporter with 0.006 ETH");
+        // (bool success,) = payable(address(reporter)).call{value: 0.001 ether}("");
+        // require(success, "ETH transfer to reporter failed");
+        // console.log("Funded reporter with 0.001 ETH");
 
         // Set the DVN config as reporter
         address[] memory optionalDVNs = new address[](0);
         address[] memory requiredDVNs = new address[](1);
-        requiredDVNs[0] = address(0xDd7B5E1dB4AaFd5C8EC3b764eFB8ed265Aa5445B);
+        requiredDVNs[0] = address(0xa7b5189bcA84Cd304D8553977c7C614329750d99);
 
         UlnConfig memory uln = UlnConfig({
             confirmations: 15, // minimum block confirmations required

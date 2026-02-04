@@ -5,8 +5,9 @@ import "forge-std/Script.sol";
 import "../../src/vea/VeaAdapter.sol";
 import "../../src/vea/VeaReporter.sol";
 import {IVeaInbox} from "../../src/vea/interfaces/IVeaInbox.sol";
+import "../helpers/DeploymentState.sol";
 
-contract DeployVeaAdapter is Script {
+contract DeployVeaAdapter is DeploymentState {
     function run() external {
         // start broadcasting as your deployer
         uint256 pk = vm.envUint("DEPLOYER_KEY");
@@ -18,6 +19,7 @@ contract DeployVeaAdapter is Script {
         address veaOutbox = vm.envAddress("VEA_OUTBOX");
         uint256 sourceChain = vm.envUint("VEA_SOURCE_CHAIN_ID");
         VeaAdapter adapter = new VeaAdapter(veaOutbox, sourceChain);
+        _updateLocal("veaAdapter", address(adapter));
         console.log("VeaAdapter deployed at:", address(adapter));
 
         vm.stopBroadcast();
@@ -25,12 +27,12 @@ contract DeployVeaAdapter is Script {
 }
 
 // Run after deployment
-contract SetupVeaReporter is Script {
+contract SetupVeaAdapter is DeploymentState {
     function run() external {
         // start broadcasting as your deployer
         uint256 pk = vm.envUint("DEPLOYER_KEY");
         address veaAdapter = vm.envAddress("VEA_ADAPTER");
-        address reporter = vm.envAddress("VEA_REPORTER");
+        address reporter = _loadAddress(".veaReporter");
 
         vm.startBroadcast(pk);
         VeaAdapter adapter = VeaAdapter(veaAdapter);

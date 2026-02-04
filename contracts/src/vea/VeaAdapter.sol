@@ -38,7 +38,11 @@ contract VeaAdapter is IReceiverGateway, Adapter {
         return VEA_OUTBOX;
     }
 
-    function receiveMessage(address sourceMsgSender, bytes calldata data) external override onlyFromAuthenticatedVeaSender(sourceMsgSender) {
+    function receiveMessage(address sourceMsgSender, bytes calldata data)
+        external
+        override
+        onlyFromAuthenticatedVeaSender(sourceMsgSender)
+    {
         (uint256[] memory ids, bytes32[] memory hashes) = abi.decode(data, (uint256[], bytes32[]));
         _storeHashes(SOURCE_CHAIN_ID, ids, hashes);
     }
