@@ -1,34 +1,35 @@
 import React, { useState, useEffect } from "react";
 import { useLightBulb } from "@/hooks/useLigthBulb";
 import { Address, Chain } from "viem";
-import { gnosisChiado, sepolia } from "viem/chains";
+import { useAppKitAccount } from "@reown/appkit/react";
+import { useChains } from "@/context/ChainContext";
+import { getDestinationChainsForSourceChain } from "@/utils/routes/getters";
 
-const LIGHTBULB_CHAINS: Chain[] = [gnosisChiado, sepolia];
 
 /**
  * Always-visible dialog to check and display lightbulb on/off status.
  */
-export function LightbulbStatusDialog({
-  address,
-  lightbulbChainId,
-  setLightbulbChainId,
-}: {
-  address: string | undefined;
-  lightbulbChainId: number;
-  setLightbulbChainId: React.Dispatch<React.SetStateAction<number>>;
-}) {
+export function LightbulbStatusDialog() {
+  const { address } = useAppKitAccount();
+  const {
+    sourceChainId: switchChainId,
+    destinationChainId: lightbulbChainId,
+    setDestinationChainId,
+  } = useChains();
+  const lightbulbChains = getDestinationChainsForSourceChain(switchChainId);
   // optional override input
   const [inputAddress, setInputAddress] = useState<string>("");
   // current lightbulb status
   const { isOn, loading, refetch } = useLightBulb(
+    switchChainId,
     lightbulbChainId,
-    address as Address
+    address as Address,
   );
 
   // fetch connected address on mount
   useEffect(() => {
     refetch(lightbulbChainId);
-  }, [lightbulbChainId, refetch]);
+  }, [switchChainId, lightbulbChainId, refetch]);
 
   /**
    * Trigger a status check for the given address (or connected address if none)
@@ -50,7 +51,7 @@ export function LightbulbStatusDialog({
   const handleLightbulbChain = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextId = Number(e.target.value);
     if (Number.isFinite(nextId)) {
-      setLightbulbChainId(nextId);
+      setDestinationChainId(nextId);
     }
   };
 
@@ -68,7 +69,7 @@ export function LightbulbStatusDialog({
               onChange={handleLightbulbChain}
               className="ml-2 px-2 py-1 border rounded"
             >
-              {LIGHTBULB_CHAINS.map((c) => (
+              {lightbulbChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
@@ -105,21 +106,23 @@ export function LightbulbStatusDialog({
         </div>
       </div>
       {/* Status Display */}
-      <p
-        className={`text-4xl font-large ${
-          isOn === null
-            ? "text-gray-400"
+      {!loading && (
+        <p
+          className={`text-4xl font-large ${
+            isOn === null
+              ? "text-gray-400"
+              : isOn
+                ? "text-green-600"
+                : "text-red-600"
+          }`}
+        >
+          {isOn === null
+            ? "No Status"
             : isOn
-            ? "text-green-600"
-            : "text-red-600"
-        }`}
-      >
-        {isOn === null
-          ? "No Status"
-          : isOn
-          ? "The lightbulb is ON"
-          : "The lightbulb is OFF"}
-      </p>
+              ? "The lightbulb is ON"
+              : "The lightbulb is OFF"}
+        </p>
+      )}
     </div>
   );
 }
