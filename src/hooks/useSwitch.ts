@@ -3,12 +3,8 @@ import type { Address } from "viem";
 import { encodeFunctionData } from "viem";
 import { useSendTransaction } from "wagmi";
 import { SwitchAbi } from "@/utils/abis/switchAbi";
-import {
-  HashiAddress,
-  SWITCH_ADDRESS,
-  LIGHTBULB_PER_CHAIN,
-} from "@/utils/consts";
-
+import { getSwitch, getLightbulb } from "@/utils/routes/getters";
+import type { HashiAddress } from "@/utils/types";
 export type TxnStatus = "idle" | "pending" | "success" | "error";
 
 interface UseSwitchReturn {
@@ -31,12 +27,17 @@ interface UseSwitchReturn {
  *
  * @param contractAddress - deployed Switch contract address
  */
-export function useSwitch(lightbulbChainId: number): UseSwitchReturn {
+export function useSwitch(
+  switchChainId: number,
+  lightbulbChainId: number,
+): UseSwitchReturn {
   const [status, setStatus] = useState<TxnStatus>("idle");
   const [txHash, setTxHash] = useState<string>();
   const [error, setError] = useState<string>();
   const { data: hash, sendTransaction } = useSendTransaction();
 
+  const switchAddress = getSwitch(switchChainId, lightbulbChainId);
+  const lightbulbAddress = getLightbulb(switchChainId, lightbulbChainId);
   useEffect(() => {
     if (hash) {
       setTxHash(hash);
@@ -45,7 +46,7 @@ export function useSwitch(lightbulbChainId: number): UseSwitchReturn {
 
   const turnOnLightBulb = async (
     threshold: number,
-    bridges: HashiAddress[]
+    bridges: HashiAddress[],
   ): Promise<void> => {
     const reporters: Address[] = bridges.map((b) => b.reporter);
     const adapters: Address[] = bridges.map((b) => b.adapter);
@@ -58,14 +59,14 @@ export function useSwitch(lightbulbChainId: number): UseSwitchReturn {
         functionName: "turnOnLightBulb",
         args: [
           lightbulbChainId,
-          LIGHTBULB_PER_CHAIN[lightbulbChainId],
+          lightbulbAddress,
           threshold,
           reporters,
           adapters,
         ],
       });
       sendTransaction({
-        to: SWITCH_ADDRESS,
+        to: switchAddress as Address,
         data,
         value: BigInt(0),
       });
