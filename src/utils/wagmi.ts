@@ -1,6 +1,7 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { sepolia, arbitrumSepolia, gnosisChiado } from "@reown/appkit/networks";
 import type { AppKitNetwork } from "@reown/appkit/networks";
+import { getAllSourceChains } from "@/utils/routes/getters";
 
 // Get projectId from https://cloud.reown.com
 export const projectId = process.env.PROJECT_ID || "b56e18d47c72ab683b10814fe9495694"; // this is a public projectId only to use on localhost
@@ -17,9 +18,9 @@ export const metadata = {
 };
 
 // for custom networks visit -> https://docs.reown.com/appkit/react/core/custom-networks
-export const networks = [sepolia, arbitrumSepolia, gnosisChiado] as [
+export const networks = getAllSourceChains() as [
   AppKitNetwork,
-  ...AppKitNetwork[]
+  ...AppKitNetwork[],
 ];
 
 //Set up the Wagmi Adapter (Config)

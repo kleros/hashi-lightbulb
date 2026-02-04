@@ -1,40 +1,31 @@
 // src/utils/viemClient.ts
-import { createPublicClient, http, type Chain } from "viem";
-import { arbitrumSepolia, gnosisChiado, sepolia } from "viem/chains";
-
-export const SUPPORTED_CHAINS: Chain[] = [
-  arbitrumSepolia,
-  gnosisChiado,
-  sepolia,
-];
-export const DEFAULT_CHAIN = arbitrumSepolia;
-export const CHAIN_BY_ID: Record<number, Chain> = Object.fromEntries(
-  SUPPORTED_CHAINS.map((c) => [c.id, c])
-) as Record<number, Chain>;
+import { createPublicClient, http } from "viem";
+import { CHAIN_BY_ID } from "@/utils/chains";
 
 const _publicClients = new Map<number, ReturnType<typeof createPublicClient>>();
 
 export function getPublicClient(chainId: number) {
   const existing = _publicClients.get(chainId);
   if (existing) return existing;
-  const chain = CHAIN_BY_ID[chainId] ?? DEFAULT_CHAIN;
-  let client: ReturnType<typeof createPublicClient>;
-  if (chain.id === arbitrumSepolia.id) {
-    client = createPublicClient({
-      chain,
-      transport: http(process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC),
-    });
-  } else {
-    client = createPublicClient({ chain, transport: http() });
-  }
 
-  _publicClients.set(chain.id, client);
+  const chain = CHAIN_BY_ID.get(chainId);
+  if (!chain) throw new Error("Chain not supported" + chainId);
+  // Optional: env override per chain
+  const envRpcKey = `NEXT_PUBLIC_RPC_${chain.id}`;
+  const envRpcUrl = (process.env as Record<string, string | undefined>)[
+    envRpcKey
+  ];
+
+  const transport = envRpcUrl ? http(envRpcUrl) : http();
+
+  const client = createPublicClient({
+    chain,
+    transport,
+  });
+
+  _publicClients.set(chainId, client);
   return client;
 }
 
 export const getPublic = getPublicClient;
 
-export async function ensureChain(chainId: number) {
-  const target = CHAIN_BY_ID[chainId] ?? DEFAULT_CHAIN;
-  return { publicClient: getPublicClient(target.id), chain: target };
-} 
