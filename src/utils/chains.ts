@@ -8,8 +8,8 @@ export type UIChain = {
 
 export const CHAIN_BY_ID = new Map<number, chains.Chain>(
   Object.values(chains)
-    .filter((c: any) => typeof c?.id === "number")
-    .map((c: any) => [c.id, c]),
+    .filter((c: chains.Chain) => typeof c?.id === "number")
+    .map((c: chains.Chain) => [c.id, c]),
 );
 
 

@@ -1,10 +1,10 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { sepolia, arbitrumSepolia, gnosisChiado } from "@reown/appkit/networks";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 import { getAllSourceChains } from "@/utils/routes/getters";
 
 // Get projectId from https://cloud.reown.com
-export const projectId = process.env.PROJECT_ID || "b56e18d47c72ab683b10814fe9495694"; // this is a public projectId only to use on localhost
+export const projectId =
+  process.env.PROJECT_ID || "b56e18d47c72ab683b10814fe9495694"; // this is a public projectId only to use on localhost
 
 if (!projectId) {
   throw new Error("Project ID is not defined");
@@ -12,9 +12,9 @@ if (!projectId) {
 
 export const metadata = {
   name: "Hashi Lightbulb",
-    description: "Hashi Lightbulb",
-    url: "https://localhost:3000",
-    icons: ["https://localhost:3000/icon.png"],
+  description: "Hashi Lightbulb",
+  url: "https://localhost:3000",
+  icons: ["https://localhost:3000/icon.png"],
 };
 
 // for custom networks visit -> https://docs.reown.com/appkit/react/core/custom-networks

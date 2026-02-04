@@ -145,7 +145,7 @@ export function LightbulbControls() {
 
     (async () => {
       try {
-        const publicClient = await getPublicClient(switchChainId);
+        const publicClient = getPublicClient(switchChainId);
         const receipt = await publicClient.waitForTransactionReceipt({
           hash: txHash as `0x${string}`,
         });

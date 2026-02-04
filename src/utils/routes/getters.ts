@@ -70,7 +70,6 @@ export function getLightbulb(
   sourceChainId: number,
   destinationChainId: number,
 ) {
-  console.log(sourceChainId, destinationChainId);
   return getRoute(sourceChainId, destinationChainId)?.lightbulb;
 }
 

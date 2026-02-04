@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLightBulb } from "@/hooks/useLigthBulb";
-import { Address, Chain } from "viem";
+import { Address } from "viem";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useChains } from "@/context/ChainContext";
 import { getDestinationChainsForSourceChain } from "@/utils/routes/getters";

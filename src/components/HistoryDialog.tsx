@@ -2,12 +2,7 @@ import React from "react";
 import { Hex, Address, encodeFunctionData } from "viem";
 import { getPublicClient } from "@/utils/viem";
 import { CHAIN_BY_ID } from "@/utils/chains";
-import {
-  getAvailableBridges,
-  getLightbulb,
-  getSwitch,
-  getYaru,
-} from "@/utils/routes/getters";
+import { getLightbulb, getSwitch, getYaru } from "@/utils/routes/getters";
 import { YaruAbi } from "@/utils/abis/yaruAbi";
 import { useSendTransaction } from "wagmi";
 import type { HashiAddress } from "@/utils/types";

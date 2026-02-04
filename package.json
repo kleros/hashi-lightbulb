@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run gen:routes && next build",
     "start": "next start",
     "lint": "next lint",
     "gen:routes": "ts-node src/scripts/gen-routes.cts"

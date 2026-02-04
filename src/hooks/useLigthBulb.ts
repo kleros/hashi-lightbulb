@@ -39,7 +39,6 @@ export function useLightBulb(
         setIsOn(null);
         return;
       }
-      console.log(fetchForChain, lightbulb);
       setLoading(true);
       setError(undefined);
       try {
@@ -59,7 +58,7 @@ export function useLightBulb(
         setLoading(false);
       }
     },
-    [owner, destChainId],
+    [owner, destChainId, lightbulb],
   );
 
   // auto‐fetch on owner change
