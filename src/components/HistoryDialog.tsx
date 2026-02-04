@@ -1,13 +1,12 @@
 import React from "react";
-import { Hex, Address } from "viem";
-import { getWalletClient, ensureChain, CHAIN_BY_ID } from "@/utils/viemClient";
-import {
-  HashiAddress,
-  LIGHTBULB_PER_CHAIN,
-  SWITCH_ADDRESS,
-  YARU_PER_CHAIN,
-} from "@/utils/consts";
+import { Hex, Address, encodeFunctionData } from "viem";
+import { getPublicClient } from "@/utils/viem";
+import { CHAIN_BY_ID } from "@/utils/chains";
+import { getLightbulb, getSwitch, getYaru } from "@/utils/routes/getters";
 import { YaruAbi } from "@/utils/abis/yaruAbi";
+import { useSendTransaction } from "wagmi";
+import type { HashiAddress } from "@/utils/types";
+
 
 export interface HistoryEntry {
   chainId: number;
@@ -37,19 +36,21 @@ export interface HistoryEntry {
 }
 
 interface HistoryTableProps {
-  chainId: number;
-  account: Address | null;
+  sourceChainId: number;
+  destChainId: number;
   history: HistoryEntry[];
 }
 
-export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
+export function HistoryTable({
+  sourceChainId,
+  destChainId,
+  history,
+}: HistoryTableProps) {
   const [isDeleted, setIsDeleted] = React.useState(false);
+  const { sendTransaction } = useSendTransaction();
+  const switchAddress = getSwitch(sourceChainId, destChainId);
+  const lightbulbAddress = getLightbulb(sourceChainId, destChainId);
   const onExecute = async (entry: HistoryEntry) => {
-    const client = getWalletClient();
-    if (!client) {
-      alert("Connect your wallet to execute messages");
-      return;
-    }
     const reporters: Address[] = entry.bridges.map((b) => b.reporter);
     const adapters: Address[] = entry.bridges.map((b) => b.adapter);
     try {
@@ -57,44 +58,35 @@ export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
       const message = {
         nonce: entry.nonce,
         data: entry.data,
-        targetChainId: chainId,
+        targetChainId: destChainId,
         threshold: entry.threshold,
-        sender: SWITCH_ADDRESS,
-        receiver: LIGHTBULB_PER_CHAIN[chainId],
+        sender: switchAddress,
+        receiver: lightbulbAddress,
         reporters,
         adapters,
       };
-
-      const { publicClient } = await ensureChain(chainId);
+      const yaruAddress = getYaru(sourceChainId, destChainId);
+      const publicClient = getPublicClient(destChainId);
       const estimatedGas = await publicClient.estimateContractGas({
-        address: YARU_PER_CHAIN[chainId],
+        address: yaruAddress as Address,
         abi: YaruAbi,
         functionName: "executeMessages",
         args: [[message]],
       });
-
-      // Call executeMessages on Yaru contract
-      const txHash = await client.writeContract({
-        address: YARU_PER_CHAIN[chainId],
+      const data = encodeFunctionData({
         abi: YaruAbi,
         functionName: "executeMessages",
         args: [[message]],
-        chain: CHAIN_BY_ID[chainId],
-        account,
+      });
+      sendTransaction({
+        to: yaruAddress as Address,
+        data,
+        chainId: destChainId,
         gas: estimatedGas,
       });
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: txHash,
-      });
-
-      if (receipt.status === "success") {
-        alert(`Message executed successfully! Tx: ${txHash}`);
-      } else {
-        throw new Error("Transaction failed on-chain");
-      }
-    } catch (err: any) {
+    } catch (err) {
       console.error("executeMessages failed", err);
-      alert(`Execution failed: ${err.message || err}`);
+      alert(`Execution failed: ${err}`);
     }
   };
 
@@ -181,14 +173,14 @@ export function HistoryTable({ chainId, account, history }: HistoryTableProps) {
                 <td className="py-2">
                   {!entry.executed && (
                     <button
-                      disabled={entry.chainId == chainId && !chainId}
+                      disabled={entry.chainId == destChainId && !destChainId}
                       onClick={() => onExecute(entry)}
                       className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                     >
-                      {entry.chainId == chainId
+                      {entry.chainId == destChainId
                         ? "Execute"
                         : "Switch wallet to " +
-                          CHAIN_BY_ID[entry.chainId]?.name}
+                          CHAIN_BY_ID.get(entry.chainId)?.name}
                     </button>
                   )}
                 </td>

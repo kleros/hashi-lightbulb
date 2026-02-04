@@ -2,10 +2,11 @@
 cache/
 out/
 
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
+# Ignore all broadcast content by default
+broadcast/**
+
+# But keep top-level chain-pair JSONs like 11155111-421614.json
+!broadcast/*.json
 
 # Docs
 docs/

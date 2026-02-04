@@ -28,13 +28,9 @@ contract Lightbulb {
         _;
     }
 
-    constructor(address _owner, address _yaru) {
+    constructor(address _owner, address _yaru, address _lightBulbSwitch) {
         owner = _owner;
         yaru = _yaru;
-    }
-
-    function setLightBulbSwitch(address _lightBulbSwitch) external {
-        require(msg.sender == owner);
         lightBulbSwitch = _lightBulbSwitch;
     }
 

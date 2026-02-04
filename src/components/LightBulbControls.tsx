@@ -1,58 +1,88 @@
 // src/components/LightbulbControls.tsx
 import React, { useEffect, useState } from "react";
-import { Address } from "viem";
-import { arbitrumSepolia } from "viem/chains";
-import {
-  HashiAddress,
-  BRIDGES_PER_CHAIN,
-  YAHO_ADDRESS_ARBITRUM_SEPOLIA,
-} from "@/utils/consts";
+import { type Address } from "viem";
+import { useAppKitAccount } from "@reown/appkit/react";
 import { useSwitch } from "@/hooks/useSwitch";
-import { HistoryEntry } from "./HistoryDialog";
-import { ensureChain } from "@/utils/viemClient";
-import { YahoAbi } from "@/utils/abis/yahoAbi";
-import { encodeAbiParameters, decodeEventLog } from "viem";
-import type { MessageDispatchedLog } from "@/utils/types";
+import { getPublicClient } from "@/utils/viem";
+import type { HashiAddress } from "@/utils/types";
+import {
+  getRoute,
+  getAvailableBridges,
+  getAllSourceChains,
+} from "@/utils/routes/getters";
+import { useChains } from "@/context/ChainContext";
+import { useAppKitNetwork } from "@reown/appkit/react";
+import { CHAIN_BY_ID } from "@/utils/chains";
 
-type Bridge = "LayerZero" | "CCIP" | "Vea";
 
-export function LightbulbControls({
-  account,
-  setHistory,
-  lightbulbChainId,
-}: {
-  account: Address | null;
-  setHistory: React.Dispatch<React.SetStateAction<HistoryEntry[]>>;
-  lightbulbChainId: number;
-}) {
+/* --------------------------------------------------
+   Bridge metadata
+-------------------------------------------------- */
+
+type BridgeKey = "lz" | "ccip" | "vea";
+
+const BRIDGE_LABELS: Record<BridgeKey, string> = {
+  lz: "LayerZero",
+  ccip: "CCIP",
+  vea: "Vea",
+};
+
+/* --------------------------------------------------
+   Component
+-------------------------------------------------- */
+
+export function LightbulbControls() {
+  const { address: account } = useAppKitAccount();
+  const { switchNetwork } = useAppKitNetwork();
+  const {
+    sourceChainId: switchChainId,
+    destinationChainId: lightbulbChainId,
+    setSourceChainId,
+  } = useChains();
+  const { turnOnLightBulb, txHash, status } = useSwitch(
+    switchChainId,
+    lightbulbChainId,
+  );
+  const switchChains = getAllSourceChains();
   const [threshold, setThreshold] = useState<number | "">("");
-  const { turnOnLightBulb, txHash, status } = useSwitch(lightbulbChainId);
   const [isLoading, setIsLoading] = useState(false);
-  const [bridges, setBridges] = useState<HashiAddress[]>([]);
   const [selectedBridges, setSelectedBridges] = useState<
-    Record<Bridge, boolean>
-  >({
-    LayerZero: false,
-    CCIP: false,
-    Vea: false,
-  });
+    Record<BridgeKey, boolean>
+  >({} as any);
+
+  /* --------------------------------------------------
+     Route + available bridges (FROM GETTER)
+  -------------------------------------------------- */
+  const route = getRoute(switchChainId, lightbulbChainId);
+
+  const availableBridges = getAvailableBridges(
+    switchChainId,
+    lightbulbChainId,
+  ) as BridgeKey[];
+
+  // Initialize selection state whenever route changes
+  useEffect(() => {
+    const initial: Record<BridgeKey, boolean> = {
+      lz: false,
+      ccip: false,
+      vea: false,
+    };
+    availableBridges.forEach((b) => (initial[b] = false));
+    setSelectedBridges(initial);
+  }, [lightbulbChainId, switchChainId]);
+
+  /* --------------------------------------------------
+     Handlers
+  -------------------------------------------------- */
 
   const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     if (val === "") {
       setThreshold("");
     } else {
-      // ensure only non-negative integers
       const num = parseInt(val, 10);
       if (!isNaN(num) && num >= 0) setThreshold(num);
     }
-  };
-
-  const toggleBridge = (bridge: Bridge) => {
-    setSelectedBridges((prev) => ({
-      ...prev,
-      [bridge]: !prev[bridge],
-    }));
   };
 
   const handleSubmit = async () => {
@@ -60,137 +90,140 @@ export function LightbulbControls({
       alert("Please connect your wallet first");
       return;
     }
-    if (threshold === "" || isNaN(Number(threshold)) || Number(threshold) < 0) {
+
+    if (threshold === "" || Number(threshold) < 0) {
       alert("Please enter a valid non-negative threshold value");
       return;
     }
-    const chosen = (Object.keys(selectedBridges) as Bridge[]).filter(
-      (bridge) => selectedBridges[bridge]
+
+    if (!route) {
+      alert("No route available for this chain pair");
+      return;
+    }
+
+    const chosen = (Object.keys(selectedBridges) as BridgeKey[]).filter(
+      (b) => selectedBridges[b],
     );
-    const selectedHashiAddresses: HashiAddress[] = chosen.map(
-      (bridge) => BRIDGES_PER_CHAIN[lightbulbChainId][bridge]
+
+    if (chosen.length === 0) {
+      alert("Please select at least one bridge");
+      return;
+    }
+
+    const selectedHashiAddresses: HashiAddress[] = chosen.map((b) => ({
+      reporter: route[`${b}Reporter` as keyof typeof route] as Address,
+      adapter: route[`${b}Adapter` as keyof typeof route] as Address,
+    }));
+
+    await turnOnLightBulb(
+      threshold,
+      selectedHashiAddresses,
+      account as Address,
     );
-    setBridges(selectedHashiAddresses);
-    await turnOnLightBulb(threshold, selectedHashiAddresses, account);
+  };
+
+  const handleSwitchChain = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextId = Number(e.target.value);
+    if (Number.isFinite(nextId)) {
+      const chain = CHAIN_BY_ID.get(nextId);
+      if (!chain) throw new Error("Chain not supported" + nextId);
+      switchNetwork(chain);
+      setSourceChainId(nextId);
+    }
   };
 
   useEffect(() => {
-    if (status === "pending") {
-      setIsLoading(true);
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(status === "pending");
   }, [status]);
 
+  /* --------------------------------------------------
+     History handling
+  -------------------------------------------------- */
+
   useEffect(() => {
-    if (txHash) {
-      (async () => {
-        const { publicClient: arbSepoliaPublicClient } = await ensureChain(
-          arbitrumSepolia.id
-        );
-        const receipt = await arbSepoliaPublicClient.waitForTransactionReceipt({
+    if (!txHash) return;
+
+    (async () => {
+      try {
+        const publicClient = getPublicClient(switchChainId);
+        const receipt = await publicClient.waitForTransactionReceipt({
           hash: txHash as `0x${string}`,
-          pollingInterval: 1_000,
-          timeout: 60_000,
         });
-        const yahoLogs = receipt.logs.filter(
-          (log) =>
-            log.address.toLowerCase() ===
-            YAHO_ADDRESS_ARBITRUM_SEPOLIA.toLowerCase()
-        );
-        let messageNonce: number | undefined = 0;
-        try {
-          const decoded = decodeEventLog({
-            abi: YahoAbi,
-            data: yahoLogs[0].data,
-            topics: yahoLogs[0].topics,
-          }) as unknown as MessageDispatchedLog;
-          if (decoded.eventName === "MessageDispatched") {
-            messageNonce = Number(decoded.args.message.nonce);
-          }
-        } catch (err) {
-          console.error("Failed to decode Yaho log:", err);
-        }
-        const bridgeEntry: HistoryEntry = {
-          chainId: lightbulbChainId,
-          nonce: messageNonce.toString(),
-          data: encodeAbiParameters([{ type: "address" }], [account!]),
-          switchTx: txHash,
-          threshold: Number(threshold),
-          bridges,
-          layerZero: {
-            txHash: "",
-            isUsed: selectedBridges.LayerZero,
-          },
-          CCIP: {
-            txHash: "",
-            isUsed: selectedBridges.CCIP,
-          },
-          vea: {
-            txHash: "",
-            isUsed: selectedBridges.Vea,
-          },
-          executed: false,
-        };
-        setHistory((prev) => {
-          const updated = [...prev, bridgeEntry];
-          try {
-            localStorage.setItem("lightbulbHistory", JSON.stringify(updated));
-          } catch (e) {
-            console.error("Failed to save history to localStorage", e);
-          }
-          return updated;
-        });
-      })();
-    }
+        alert("Transaction confirmed! " + receipt.transactionHash);
+      } catch (err) {
+        console.error("Transaction confirmation failed:", err);
+      }
+    })();
   }, [txHash]);
 
+  /* --------------------------------------------------
+     Render
+  -------------------------------------------------- */
+
   return (
-    <div className="w-1/2 mr-10 mx-auto bg-black border-2 border-white p-6 rounded-lg shadow-md">
-      {/* Threshold Input */}
-      <div className="mb-6">
-        <label htmlFor="threshold" className="block text-lg font-medium mb-2">
-          Set Threshold Value
+    <div className="w-1/2 mx-auto bg-black border-2 border-white p-6 rounded-lg">
+      {/* Threshold */}
+      <div className="flex justify-between mb-6">
+        <div>
+          <label className="block text-lg font-medium mb-2">
+            Set Threshold Value
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={threshold}
+            onChange={handleThresholdChange}
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+        <label className="block text-sm">
+          Switch chain
+          <select
+            value={switchChainId}
+            onChange={handleSwitchChain}
+            className="ml-2 px-2 py-1 border rounded"
+          >
+            {switchChains.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </label>
-        <input
-          id="threshold"
-          type="number"
-          min="0"
-          value={threshold}
-          onChange={handleThresholdChange}
-          placeholder="Enter threshold"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
       </div>
 
-      {/* Bridge Checkboxes */}
+      {/* Bridges */}
       <div className="mb-6">
         <span className="block text-lg font-medium mb-2">Select Bridge</span>
-        <div className="space-y-3 pl-2">
-          {(["LayerZero", "CCIP", "Vea"] as Bridge[]).map((bridge) => (
-            <label key={bridge} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={selectedBridges[bridge]}
-                onChange={() => toggleBridge(bridge)}
-                className="h-5 w-5 text-blue-600 border-gray-300 rounded"
-              />
-              <span
-                className={`ml-3 ${
-                  selectedBridges[bridge] ? "text-blue-600" : "text-gray-700"
-                }`}
-              >
-                {bridge}
-              </span>
-            </label>
-          ))}
-        </div>
+
+        {availableBridges.length === 0 && (
+          <p className="text-sm text-gray-400">
+            No bridges available for this route
+          </p>
+        )}
+
+        {availableBridges.map((b) => (
+          <label key={b} className="flex items-center mt-2">
+            <input
+              type="checkbox"
+              checked={!!selectedBridges[b]}
+              onChange={() =>
+                setSelectedBridges((prev) => ({
+                  ...prev,
+                  [b]: !prev[b],
+                }))
+              }
+              className="h-5 w-5"
+            />
+            <span className="ml-3">{BRIDGE_LABELS[b]}</span>
+          </label>
+        ))}
       </div>
 
-      {/* Action Button */}
+      {/* Submit */}
       <button
         onClick={handleSubmit}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        className="w-full px-4 py-2 bg-blue-600 text-white rounded"
       >
         {isLoading ? "Turning On Lightbulb..." : "Turn On Lightbulb"}
       </button>

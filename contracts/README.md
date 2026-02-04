@@ -1,17 +1,12 @@
-## Foundry
+## Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+**This directory contains the core smart contracts for briding with Hashi using three bridges LayerZero,Vea and CCIP. It also includes deployment scripts used to set up and configure cross-chain routes between networks.**
 
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
+## Relevant links
+[Hashi](https://crosschain-alliance.gitbook.io/hashi/meta/explorer$0)<br>
+[Vea](https://docs.vea.ninja/$0) <br>
+[LayerZero](https://docs.layerzero.network/v2/developers/evm/overview$0) <br>
+[CCIP](https://docs.chain.link/ccip$0)
 
 ## Usage
 
@@ -21,46 +16,40 @@ https://book.getfoundry.sh/
 $ forge build
 ```
 
-### Test
-
-```shell
-$ forge test
-```
-
 ### Format
 
 ```shell
 $ forge fmt
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
 ### Deploy
+Copy `.env.example` to `.env` and fill in the required values. 
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+$ export SOURCE_RPC=https://x.io
+$ export DESTINATION_RPC=https://y.io
 
-### Cast
+$ ./script/deploy-route.sh --reporter-chain $SOURCE_RPC --adapter-chain $DESTINATION_RPC
+
+```
+#### Flags
+##### Bridge flags: --ccip , --lz, --vea. <br>
+Deploys Adapter and Reporter contracts for passed bridges. 
+```shell
+$ ./script/deploy-route.sh --reporter-chain $SOURCE_RPC --adapter-chain $DESTINATION_RPC --lz --vea
+```
+**⚠️ Before deploying LayerZero contracts update the DVN addresses in [Adapter](https://github.com/kleros/hashi-lightbulb/blob/main/contracts/script/layerZero/DeployLZAdapter.s.sol$0) and [Reporter](https://github.com/kleros/hashi-lightbulb/blob/main/contracts/script/layerZero/DeployLZReporter.s.sol$0) script.**
+##### Hashi flag: --hashi
+Deploys Yaho, Yaru and Hashi contract.
 
 ```shell
-$ cast <subcommand>
+$ ./script/deploy-route.sh --reporter-chain $SOURCE_RPC --adapter-chain $DESTINATION_RPC --hashi
 ```
 
-### Help
-
+##### Lightbulb flag: --lightbulb
+Deploys Switch and Lightbulb contract.
 ```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+$ ./script/deploy-route.sh --reporter-chain $SOURCE_RPC --adapter-chain $DESTINATION_RPC --lightbulb
 ```
+
+

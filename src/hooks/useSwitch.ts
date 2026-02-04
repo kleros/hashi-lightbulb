@@ -1,15 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Address } from "viem";
-import { arbitrumSepolia } from "viem/chains";
 import { encodeFunctionData } from "viem";
-import { getWalletClient, ensureChain } from "@/utils/viemClient";
+import { useSendTransaction } from "wagmi";
 import { SwitchAbi } from "@/utils/abis/switchAbi";
-import {
-  HashiAddress,
-  SWITCH_ADDRESS,
-  LIGHTBULB_PER_CHAIN,
-} from "@/utils/consts";
-
+import { getSwitch, getLightbulb } from "@/utils/routes/getters";
+import type { HashiAddress } from "@/utils/types";
 export type TxnStatus = "idle" | "pending" | "success" | "error";
 
 interface UseSwitchReturn {
@@ -18,7 +13,7 @@ interface UseSwitchReturn {
     threshold: number,
     HashiAddresses: HashiAddress[],
     account: Address
-  ) => Promise<string>;
+  ) => Promise<void>;
   /** current transaction hash (if any) */
   txHash?: string;
   /** error message (if any) */
@@ -32,18 +27,27 @@ interface UseSwitchReturn {
  *
  * @param contractAddress - deployed Switch contract address
  */
-export function useSwitch(lightbulbChainId: number): UseSwitchReturn {
+export function useSwitch(
+  switchChainId: number,
+  lightbulbChainId: number,
+): UseSwitchReturn {
   const [status, setStatus] = useState<TxnStatus>("idle");
   const [txHash, setTxHash] = useState<string>();
   const [error, setError] = useState<string>();
+  const { data: hash, sendTransaction } = useSendTransaction();
+
+  const switchAddress = getSwitch(switchChainId, lightbulbChainId);
+  const lightbulbAddress = getLightbulb(switchChainId, lightbulbChainId);
+  useEffect(() => {
+    if (hash) {
+      setTxHash(hash);
+    }
+  }, [hash]);
 
   const turnOnLightBulb = async (
     threshold: number,
     bridges: HashiAddress[],
-    account: Address
-  ): Promise<string> => {
-    const client = getWalletClient();
-    if (!client) throw new Error("Wallet not connected");
+  ): Promise<void> => {
     const reporters: Address[] = bridges.map((b) => b.reporter);
     const adapters: Address[] = bridges.map((b) => b.adapter);
     try {
@@ -55,44 +59,20 @@ export function useSwitch(lightbulbChainId: number): UseSwitchReturn {
         functionName: "turnOnLightBulb",
         args: [
           lightbulbChainId,
-          LIGHTBULB_PER_CHAIN[lightbulbChainId],
+          lightbulbAddress,
           threshold,
           reporters,
           adapters,
         ],
       });
-      const { publicClient: arbSepoliaPublicClient } = await ensureChain(
-        arbitrumSepolia.id
-      );
-
-      // Estimate gas via public client
-      const estimatedGas = await arbSepoliaPublicClient.estimateGas({
-        account,
-        to: SWITCH_ADDRESS,
+      sendTransaction({
+        to: switchAddress as Address,
         data,
         value: BigInt(0),
       });
-      const hash = await client.writeContract({
-        address: SWITCH_ADDRESS,
-        abi: SwitchAbi,
-        functionName: "turnOnLightBulb",
-        args: [
-          lightbulbChainId,
-          LIGHTBULB_PER_CHAIN[lightbulbChainId],
-          threshold,
-          reporters,
-          adapters,
-        ],
-        value: BigInt(0),
-        chain: arbitrumSepolia,
-        account,
-        gas: estimatedGas,
-      });
-      setTxHash(hash);
       setStatus("success");
-      return hash;
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
+    } catch (e) {
+      setError(String(e));
       setStatus("error");
       throw e;
     }

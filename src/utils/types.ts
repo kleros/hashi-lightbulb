@@ -1,4 +1,4 @@
-// 1) Define the shape of the event-args:
+import type { Address } from "viem";
 interface MessageDispatchedArgs {
   messageId: bigint;
   message: {
@@ -7,9 +7,34 @@ interface MessageDispatchedArgs {
     data: `0x${string}`;
   };
 }
-
-// 2) Define the decoded-log shape:
 export interface MessageDispatchedLog {
   eventName: "MessageDispatched";
   args: MessageDispatchedArgs;
 }
+
+export enum Bridges {
+  LZ = "lz",
+  CCIP = "ccip",
+  VEA = "vea",
+}
+
+export type HashiAddress = {
+  reporter: Address;
+  adapter: Address;
+};
+
+export type FlatRouteFile = {
+  lzReporter?: string;
+  lzAdapter?: string;
+
+  ccipReporter?: string;
+  ccipAdapter?: string;
+
+  veaReporter?: string;
+  veaAdapter?: string;
+
+  lightbulb: string;
+  switch: string;
+  yaho: string;
+  yaru: string;
+};

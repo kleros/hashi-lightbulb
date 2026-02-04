@@ -1,9 +1,9 @@
 // hooks/useLightBulb.ts
 import { useState, useEffect, useCallback } from "react";
-import { getPublic } from "@/utils/viemClient";
+import { getPublic } from "@/utils/viem";
 import type { Address } from "viem";
 import { LightbulbAbi } from "@/utils/abis/lightbulbAbi";
-import { LIGHTBULB_PER_CHAIN } from "@/utils/consts";
+import { getLightbulb } from "@/utils/routes/getters";
 
 interface UseLightBulbReturn {
   /** `true` if on, `false` if off, `undefined` if not yet loaded or no address passed */
@@ -22,16 +22,18 @@ interface UseLightBulbReturn {
  * @param owner the address whose bulb state you want to read
  */
 export function useLightBulb(
-  chainId: number,
-  owner?: Address
+  sourceChainId: number,
+  destChainId: number,
+  owner?: Address,
 ): UseLightBulbReturn {
   const [isOn, setIsOn] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
+  const lightbulb = getLightbulb(sourceChainId, destChainId);
 
   const fetchState = useCallback(
     async (_chainId?: number) => {
-      const fetchForChain = _chainId || chainId;
+      const fetchForChain = _chainId || destChainId;
       if (!owner) {
         console.warn("No owner address provided, cannot fetch state");
         setIsOn(null);
@@ -42,21 +44,21 @@ export function useLightBulb(
       try {
         const publicClient = getPublic(fetchForChain);
         const result = await publicClient.readContract({
-          address: LIGHTBULB_PER_CHAIN[fetchForChain],
+          address: lightbulb as Address,
           abi: LightbulbAbi,
           functionName: "lightBulbIsOn",
           args: [owner],
         });
         setIsOn(result as boolean);
-      } catch (e: any) {
+      } catch (e) {
         console.error("Failed to fetch lightbulb state", e);
-        setError(e.message || String(e));
+        setError(String(e));
         setIsOn(null);
       } finally {
         setLoading(false);
       }
     },
-    [owner]
+    [owner, destChainId, lightbulb],
   );
 
   // auto‐fetch on owner change

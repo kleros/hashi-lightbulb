@@ -6,7 +6,9 @@ import "forge-std/console.sol";
 import "../../src/chainlink/CCIPReporter.sol";
 import "../../src/chainlink/CCIPAdapter.sol";
 
-contract CCIP is Script {
+import "../helpers/DeploymentState.sol";
+
+contract CCIP is DeploymentState {
     function run() external {
         // read deployer key and start broadcasting
         uint256 pk = vm.envUint("DEPLOYER_KEY");
@@ -20,6 +22,7 @@ contract CCIP is Script {
         address router = vm.envAddress("CCIP_REPORTER_ROUTER");
 
         CCIPReporter reporter = new CCIPReporter(headerStorage, yaho, router);
+        _updateLocal("ccipReporter", address(reporter));
         console.log("CCIPReporter deployed at:", address(reporter));
 
         // read chain‐specific setup from env
@@ -30,7 +33,8 @@ contract CCIP is Script {
         reporter.setChainSelectorByChainId(adapterChainId, adapterChainSelector);
 
         // fund the reporter
-        vm.deal(address(reporter), 0.01 ether);
+        (bool sent,) = address(reporter).call{value: 0.01 ether}("");
+        require(sent, "Failed to fund CCIPReporter");
 
         vm.stopBroadcast();
     }

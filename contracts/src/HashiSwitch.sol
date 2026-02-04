@@ -16,8 +16,12 @@ import "@hashi/interfaces/IYaho.sol";
  * @dev A switch on arbitrum turning a light on and off on arbitrum with the Vea bridge.
  */
 contract Switch {
+    IYaho public yaho;
+
+    constructor(address _yaho){
+        yaho = IYaho(_yaho);
+    }
     uint256 messageIndex;
-    IYaho public yaho = IYaho(0xDbdF80c87f414fac8342e04D870764197bD3bAC7);
     /**
      * @dev The Fast Bridge participants watch for these events to decide if a challenge should be submitted.
      * @param messageId The id of the message sent to the lightbulb.
@@ -35,8 +39,9 @@ contract Switch {
     ) external payable {
         bytes memory _msgData = abi.encode(msg.sender);
 
-        (uint256 msgId,) =
-            yaho.dispatchMessageToAdapters(_lightBulbChainId, _threshold, _targetAddress, _msgData, _reporters, _adapters);
+        (uint256 msgId,) = yaho.dispatchMessageToAdapters(
+            _lightBulbChainId, _threshold, _targetAddress, _msgData, _reporters, _adapters
+        );
         emit LightBulbToggled(msgId, msg.sender);
     }
 }
