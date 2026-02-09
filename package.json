@@ -1,10 +1,12 @@
 {
-  "name": "hashi-ligthbulb",
+  "name": "@kleros/hashi",
   "version": "0.1.0",
-  "private": true,
+  "main": "dist/index.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "dev": "next dev",
     "build": "npm run gen:routes && next build",
+    "build:package": "forge build && bash ./contracts/script/generate-types.sh && tsc -p tsconfig.sdk.json",
     "start": "next start",
     "lint": "next lint",
     "gen:routes": "ts-node src/scripts/gen-routes.cts"
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@typechain/ethers-v5": "^11.1.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,6 +38,16 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
     "tailwindcss": "^4",
+    "typechain": "^8.3.2",
     "typescript": "^5"
-  }
+  },
+  "files": [
+    "dist",
+    "contracts/src/**/*.sol",
+    "lib/hashi/packages/evm/contracts/Yaho.sol",
+    "lib/hashi/packages/evm/contracts/Yaru.sol",
+    "lib/hashi/packages/evm/contracts/Hashi.sol",
+    "lib/hashi/packages/evm/contracts/adapters/LayerZero/*.sol",
+    "lib/hashi/packages/evm/contracts/interfaces/*.sol"
+  ]
 }
