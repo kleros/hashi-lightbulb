@@ -21,6 +21,7 @@ contract DeployYaru is DeploymentState {
             REPORTER_CHAIN_ID
         );
         vm.stopBroadcast();
+        _updateLocal("hashi", address(hashi));
         _updateLocal("yaru", address(yaru));
         console.log("Deployed yaru at:", address(yaru));
         return address(yaru);
