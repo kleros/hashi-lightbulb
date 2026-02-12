@@ -1,9 +1,9 @@
-    
-import route_0 from "../contracts/broadcast/1514-42161.json";
-import route_1 from "../contracts/broadcast/42161-1514.json";
-import route_2 from "../contracts/broadcast/421614-10200.json";
-import route_3 from "../contracts/broadcast/421614-11155111.json";
-import { FlatRouteFile } from "./types";
+import type { FlatRouteFile } from "./types";
+
+import route_0 from "./addresses/1514-42161.json";
+import route_1 from "./addresses/42161-1514.json";
+import route_2 from "./addresses/421614-10200.json";
+import route_3 from "./addresses/421614-11155111.json";
 
 export const ROUTES: Record<string, FlatRouteFile> = {
   "1514-42161": route_0,

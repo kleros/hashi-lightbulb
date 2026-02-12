@@ -1,4 +1,3 @@
-import type { Address } from "viem";
 interface MessageDispatchedArgs {
   messageId: bigint;
   message: {
@@ -19,8 +18,8 @@ export enum Bridges {
 }
 
 export type HashiAddress = {
-  reporter: Address;
-  adapter: Address;
+  reporter: `0x${string}`;
+  adapter: `0x${string}`;
 };
 
 export type FlatRouteFile = {
@@ -37,4 +36,5 @@ export type FlatRouteFile = {
   switch: string;
   yaho: string;
   yaru: string;
+  hashi: string;
 };

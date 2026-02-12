@@ -1,7 +1,5 @@
 import { ROUTES } from "./registry";
 import { Bridges, type FlatRouteFile, type HashiAddress } from "./types";
-import { Address } from "viem";
-import { resolveChain, type UIChain } from "@/utils/chains";
 
 /* --------------------------------------------------
    Internal helper
@@ -37,8 +35,12 @@ export function getBridgeAddresses(
   const route = getRoute(sourceChainId, destinationChainId);
   if (!route) return undefined;
 
-  const reporter = route[bridgeField(bridge, "Reporter")] as Address;
-  const adapter = route[bridgeField(bridge, "Adapter")] as Address;
+  const reporter = route[bridgeField(bridge, "Reporter")] as
+    | `0x${string}`
+    | undefined;
+  const adapter = route[bridgeField(bridge, "Adapter")] as
+    | `0x${string}`
+    | undefined;
 
   if (!reporter || !adapter) return undefined;
 
@@ -85,48 +87,8 @@ export function getYaru(sourceChainId: number, destinationChainId: number) {
   return getRoute(sourceChainId, destinationChainId)?.yaru;
 }
 
-export function getAllSourceChains(): UIChain[] {
-  const chainIds = new Set<number>();
-
-  for (const key of Object.keys(ROUTES)) {
-    const [source] = key.split("-").map(Number);
-    if (!Number.isNaN(source)) chainIds.add(source);
-  }
-
-  return Array.from(chainIds)
-    .map((id) => resolveChain(id))
-    .sort((a, b) => a.id - b.id);
-}
-
-export function getAllDestinationChains(): UIChain[] {
-  const chainIds = new Set<number>();
-
-  for (const key of Object.keys(ROUTES)) {
-    const [, destination] = key.split("-").map(Number);
-    if (!Number.isNaN(destination)) chainIds.add(destination);
-  }
-
-  return Array.from(chainIds)
-    .map((id) => resolveChain(id))
-    .sort((a, b) => a.id - b.id);
-}
-
-export function getDestinationChainsForSourceChain(
-  sourceChainId: number,
-): UIChain[] {
-  const chainIds = new Set<number>();
-
-  for (const key of Object.keys(ROUTES)) {
-    const [source, destination] = key.split("-").map(Number);
-
-    if (source === sourceChainId && !Number.isNaN(destination)) {
-      chainIds.add(destination);
-    }
-  }
-
-  return Array.from(chainIds)
-    .map((id) => resolveChain(id))
-    .sort((a, b) => a.id - b.id);
+export function getHashi(sourceChainId: number, destinationChainId: number) {
+  return getRoute(sourceChainId, destinationChainId)?.hashi;
 }
 /* --------------------------------------------------
    Convenience helpers (UI-friendly)
