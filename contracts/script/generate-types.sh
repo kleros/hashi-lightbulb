@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ARTIFACTS_DIR="./contracts/out" 
-SDK_ABI_DIR="./sdk/abi"
+SDK_ABI_DIR="./sdk/contracts/abi"
 TYPECHAIN_DIR="./typechain-types"
 
 # Prepare the directories
