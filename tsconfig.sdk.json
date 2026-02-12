@@ -14,17 +14,13 @@
     }
   },
   "include": [
-    "sdk/**/*.ts",
+    "sdk/",
     "typechain-types/**/*.ts",
-    "contracts/broadcast/*.json",
   ],
   "exclude": [
     "src",
     "node_modules",
     "test",
-    "contracts/**/*.sol",
-    "contracts/script",
-    "contracts/lib",
-    "contracts/test"
+    "contracts"
   ]
 }

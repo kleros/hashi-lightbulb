@@ -1,14 +1,17 @@
 {
   "name": "@kleros/hashi",
   "version": "0.1.0",
-  "main": "dist/index.ts",
-  "types": "dist/index.d.ts",
+  "main": "dist/sdk/index.js",
+  "types": "dist/sdk/index.d.ts",
   "scripts": {
     "dev": "next dev",
     "build": "npm run gen:routes && next build",
-    "build:package": "forge build && bash ./contracts/script/generate-types.sh && tsc -p tsconfig.sdk.json",
+    "build:sdk": "tsc -p tsconfig.sdk.json && npm run sync-assets",
+    "sync-assets": "cp -r sdk/contracts dist/sdk/ && cp -r sdk/addresses dist/sdk/",
+    "prepublishOnly": "npm run build:sdk",
     "start": "next start",
     "lint": "next lint",
+    "gen:types": "bash ./contracts/script/generate-types.sh",
     "gen:routes": "ts-node src/scripts/gen-routes.cts"
   },
   "dependencies": {
@@ -42,12 +45,10 @@
     "typescript": "^5"
   },
   "files": [
-    "dist",
-    "contracts/src/**/*.sol",
-    "lib/hashi/packages/evm/contracts/Yaho.sol",
-    "lib/hashi/packages/evm/contracts/Yaru.sol",
-    "lib/hashi/packages/evm/contracts/Hashi.sol",
-    "lib/hashi/packages/evm/contracts/adapters/LayerZero/*.sol",
-    "lib/hashi/packages/evm/contracts/interfaces/*.sol"
-  ]
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/sdk/index.js",
+    "./contracts/*.sol": "./dist/sdk/contracts/*.sol"
+  }
 }
