@@ -18,7 +18,7 @@ contract Lightbulb {
 
     address owner;
     address public yaru;
-    uint256 public SOURCE_CHAIN_ID = 421614;
+    uint256 public SOURCE_CHAIN_ID;
     address public lightBulbSwitch; // The switch on arbitrum that controls this lightbulb.
     mapping(address => bool) public lightBulbIsOn;
     bool switchOn = true;
@@ -28,10 +28,11 @@ contract Lightbulb {
         _;
     }
 
-    constructor(address _owner, address _yaru, address _lightBulbSwitch) {
+    constructor(address _owner, address _yaru, address _lightBulbSwitch, uint256 _sourceChainId) {
         owner = _owner;
         yaru = _yaru;
         lightBulbSwitch = _lightBulbSwitch;
+        SOURCE_CHAIN_ID = _sourceChainId;
     }
 
     function flipSwitch(bool _switchOn) external onlyOwner {
