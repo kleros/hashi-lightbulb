@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run gen:routes && next build",
-    "build:sdk": "tsc -p tsconfig.sdk.json && npm run sync-assets",
+    "build:sdk": "bash ./contracts/script/generate-types.sh && tsc -p tsconfig.sdk.json && npm run sync-assets",
     "sync-assets": "cp -r sdk/contracts dist/sdk/ && cp -r sdk/addresses dist/sdk/",
     "prepublishOnly": "npm run build:sdk",
     "start": "next start",
