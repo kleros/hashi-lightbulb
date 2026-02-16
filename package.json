@@ -1,12 +1,20 @@
 {
-  "name": "hashi-ligthbulb",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@kleros/veashi-sdk",
+  "version": "0.0.1",
+  "main": "dist/sdk/index.js",
+  "types": "dist/sdk/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "npm run gen:routes && next build",
+    "build:sdk": "bash ./contracts/script/generate-types.sh && tsc -p tsconfig.sdk.json && npm run sync-assets",
+    "sync-assets": "cp -r sdk/contracts dist/sdk/ && cp -r sdk/addresses dist/sdk/",
+    "prepublishOnly": "npm run build:sdk",
     "start": "next start",
     "lint": "next lint",
+    "gen:types": "bash ./contracts/script/generate-types.sh",
     "gen:routes": "ts-node src/scripts/gen-routes.cts"
   },
   "dependencies": {
@@ -28,6 +36,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@typechain/ethers-v5": "^11.1.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,6 +44,14 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
     "tailwindcss": "^4",
+    "typechain": "^8.3.2",
     "typescript": "^5"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/sdk/index.js",
+    "./contracts/*.sol": "./dist/sdk/contracts/*.sol"
   }
 }
