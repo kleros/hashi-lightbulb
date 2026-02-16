@@ -1,8 +1,11 @@
 {
-  "name": "@kleros/hashi",
-  "version": "0.1.0",
+  "name": "@kleros/veashi-sdk",
+  "version": "0.0.1",
   "main": "dist/sdk/index.js",
   "types": "dist/sdk/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "npm run gen:routes && next build",
