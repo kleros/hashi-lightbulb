@@ -1,5 +1,12 @@
 // src/utils/chains.ts
 import * as chains from "viem/chains";
+import {
+  arbitrum,
+  arbitrumSepolia,
+  story,
+  gnosisChiado,
+  sepolia,
+} from "viem/chains";
 
 export type UIChain = {
   id: number;
@@ -25,4 +32,20 @@ export function resolveChain(chainId: number): UIChain {
   return { id: chainId, name: `Chain ${chainId}` };
 }
 
+export function getAllSourceChains() {
+  return [arbitrum, arbitrumSepolia, story];
+}
+
+export function getDestinationChainsForSourceChain(sourceChainId: number) {
+  switch (sourceChainId) {
+    case arbitrum.id:
+      return [story];
+    case story.id:
+      return [arbitrum.id];
+    case arbitrumSepolia.id:
+      return [sepolia, gnosisChiado];
+    default:
+      return [];
+  }
+}
 

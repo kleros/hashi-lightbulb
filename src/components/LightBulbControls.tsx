@@ -5,11 +5,8 @@ import { useAppKitAccount } from "@reown/appkit/react";
 import { useSwitch } from "@/hooks/useSwitch";
 import { getPublicClient } from "@/utils/viem";
 import type { HashiAddress } from "@/utils/types";
-import {
-  getRoute,
-  getAvailableBridges,
-  getAllSourceChains,
-} from "@/utils/routes/getters";
+import { getRoute, getAvailableBridges } from "@kleros/veashi-sdk";
+import { getAllSourceChains } from "@/utils/chains";
 import { useChains } from "@/context/ChainContext";
 import { useAppKitNetwork } from "@reown/appkit/react";
 import { CHAIN_BY_ID } from "@/utils/chains";

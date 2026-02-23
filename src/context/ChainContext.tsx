@@ -1,8 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-import { UIChain } from "@/utils/chains";
-import { getDestinationChainsForSourceChain } from "@/utils/routes/getters";
+import { UIChain, getDestinationChainsForSourceChain } from "@/utils/chains";
 
 type ChainsContextType = {
   sourceChainId: number;
@@ -20,10 +19,14 @@ export function ChainsProvider({ children }: { children: React.ReactNode }) {
       _setSourceChainId(id);
 
       // Get valid destinations for this source
-      const destinations: UIChain[] = getDestinationChainsForSourceChain(id);
+      const destinations = getDestinationChainsForSourceChain(id);
 
       if (destinations.length > 0) {
-        _setDestinationChainId(destinations[0].id);
+        _setDestinationChainId(
+          typeof destinations[0] === "number"
+            ? destinations[0]
+            : (destinations[0] as any).id ?? (destinations[0] as any).chainId
+        );
       } else {
         throw new Error("No destination chain for source chain.")
       }

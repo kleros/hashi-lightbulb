@@ -2,8 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getPublic } from "@/utils/viem";
 import type { Address } from "viem";
+import { getLightbulb } from "@kleros/veashi-sdk";
 import { LightbulbAbi } from "@/utils/abis/lightbulbAbi";
-import { getLightbulb } from "@/utils/routes/getters";
 
 interface UseLightBulbReturn {
   /** `true` if on, `false` if off, `undefined` if not yet loaded or no address passed */

@@ -3,7 +3,7 @@ import { useLightBulb } from "@/hooks/useLigthBulb";
 import { Address } from "viem";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useChains } from "@/context/ChainContext";
-import { getDestinationChainsForSourceChain } from "@/utils/routes/getters";
+import { getDestinationChainsForSourceChain } from "@/utils/chains";
 
 
 /**
@@ -16,7 +16,9 @@ export function LightbulbStatusDialog() {
     destinationChainId: lightbulbChainId,
     setDestinationChainId,
   } = useChains();
-  const lightbulbChains = getDestinationChainsForSourceChain(switchChainId);
+  const lightbulbChains = getDestinationChainsForSourceChain(
+    switchChainId,
+  ).filter((c) => typeof c === "object" && c !== null);
   // optional override input
   const [inputAddress, setInputAddress] = useState<string>("");
   // current lightbulb status
@@ -69,11 +71,12 @@ export function LightbulbStatusDialog() {
               onChange={handleLightbulbChain}
               className="ml-2 px-2 py-1 border rounded"
             >
-              {lightbulbChains.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              {lightbulbChains.length > 0 &&
+                lightbulbChains.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
             </select>
           </label>
         </div>
@@ -112,15 +115,15 @@ export function LightbulbStatusDialog() {
             isOn === null
               ? "text-gray-400"
               : isOn
-                ? "text-green-600"
-                : "text-red-600"
+              ? "text-green-600"
+              : "text-red-600"
           }`}
         >
           {isOn === null
             ? "No Status"
             : isOn
-              ? "The lightbulb is ON"
-              : "The lightbulb is OFF"}
+            ? "The lightbulb is ON"
+            : "The lightbulb is OFF"}
         </p>
       )}
     </div>

@@ -1,7 +1,0 @@
-@chainlink/=../node_modules/@chainlink/contracts-ccip/src/v0.8/ccip/
-@layerzerolabs/lz-evm-protocol-v2/=../node_modules/@layerzerolabs/lz-evm-protocol-v2/
-@layerzerolabs/lz-evm-messagelib-v2=../node_modules/@layerzerolabs/lz-evm-messagelib-v2/
-@layerzerolabs/lz-evm-oapp-v2/=../node_modules/@layerzerolabs/lz-evm-oapp-v2/
-@hashi/=lib/hashi/packages/evm/contracts/
-@openzeppelin/contracts=lib/openzeppelin-contracts/contracts/
-solidity-rlp/contracts=../node_modules/solidity-rlp/contracts

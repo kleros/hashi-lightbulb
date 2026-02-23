@@ -3,7 +3,7 @@ import type { Address } from "viem";
 import { encodeFunctionData } from "viem";
 import { useSendTransaction } from "wagmi";
 import { SwitchAbi } from "@/utils/abis/switchAbi";
-import { getSwitch, getLightbulb } from "@/utils/routes/getters";
+import { getSwitch, getLightbulb } from "@kleros/veashi-sdk";
 import type { HashiAddress } from "@/utils/types";
 export type TxnStatus = "idle" | "pending" | "success" | "error";
 
