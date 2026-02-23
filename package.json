@@ -1,25 +1,20 @@
 {
-  "name": "@kleros/veashi-sdk",
+  "name": "@kleros/hashi-lightbulb",
   "version": "0.0.1",
-  "main": "dist/sdk/index.js",
-  "types": "dist/sdk/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run gen:routes && next build",
-    "build:sdk": "bash ./contracts/script/generate-types.sh && tsc -p tsconfig.sdk.json && npm run sync-assets",
-    "sync-assets": "cp -r sdk/contracts dist/sdk/ && cp -r sdk/addresses dist/sdk/",
+    "build": "next build",
     "prepublishOnly": "npm run build:sdk",
     "start": "next start",
-    "lint": "next lint",
-    "gen:types": "bash ./contracts/script/generate-types.sh",
-    "gen:routes": "ts-node src/scripts/gen-routes.cts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@chainlink/contracts-ccip": "^0.7.6",
     "@headlessui/react": "^2.2.4",
+    "@kleros/veashi-sdk": "^0.0.1",
     "@layerzerolabs/lz-evm-messagelib-v2": "^2.3.44",
     "@layerzerolabs/lz-evm-oapp-v2": "^2.3.44",
     "@layerzerolabs/lz-evm-protocol-v2": "^2.3.44",
